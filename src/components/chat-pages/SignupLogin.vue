@@ -1,119 +1,156 @@
 <script setup lang="ts">
-import { ref, onMounted, watchEffect } from 'vue'
+import {ref, type Ref} from 'vue'
 
 // Track login/signup toggle
-const isLogin = ref(true)
-
-// Track dark mode state (init from localStorage)
-const isDark = ref(false)
-onMounted(() => {
-  const storedTheme = localStorage.getItem('theme')
-  isDark.value = storedTheme === 'dark'
-})
-
-// Toggle dark mode and store in localStorage
-watchEffect(() => {
-  const html = document.documentElement
-  if (isDark.value) {
-    html.classList.add('dark-mode')
-    localStorage.setItem('theme', 'dark')
-  } else {
-    html.classList.remove('dark-mode')
-    localStorage.setItem('theme', 'light')
-  }
-})
-const toggleDark = () => {
-  isDark.value = !isDark.value
-}
+const isLogin: Ref<boolean> = ref(true)
 
 // Form fields
-const name = ref('')
-const surname = ref('')
-const birthdate = ref('')
-const gender = ref('Male')
-const email = ref('')
-const password = ref('')
+const name = ref<string>('')
+const surname = ref<string>('')
+const birthdate = ref<string>('')
+const gender = ref<string>('MALE')
+const email = ref<string>('')
+const password = ref<string>('')
 
-const switchMode = () => {
+/**
+ * Switch between Sign Up and Login modes
+ */
+function switchMode(): void {
   isLogin.value = !isLogin.value
 }
 
-const login = () => {
-  console.log('Logging in:', { email: email.value, password: password.value })
+/**
+ * Handle user sign-up
+ */
+function signUp(): void {
+  // TODO: implement sign-up logic
 }
 
-const signup = () => {
-  console.log('Signing up:', {
-    name: name.value,
-    surname: surname.value,
-    birthdate: birthdate.value,
-    gender: gender.value,
-    email: email.value,
-    password: password.value
-  })
+/**
+ * Handle user log-in
+ */
+function logIn(): void {
+  // TODO: implement log-in logic
 }
 </script>
 
 <template>
-  <div class="w-full min-h-screen flex items-center justify-center transition-colors duration-300 bg-gray-100 dark-page">
-    <!-- Toggle button -->
-    <div class="absolute top-4 right-4 z-10">
-      <button
-          @click="toggleDark"
-          class="px-3 py-1 text-sm rounded bg-gray-800 text-white dark-toggle"
-      >
-        {{ isDark ? '☀️ Light Mode' : '🌙 Dark Mode' }}
-      </button>
-    </div>
-
+  <div class="w-full min-h-screen flex items-center justify-center bg-gray-100">
     <!-- Card -->
-    <div class="bg-white dark-toggle-bg p-8 rounded-2xl shadow-xl w-full max-w-md">
-      <h2 class="text-3xl font-bold mb-6 text-center dark-toggle-text">
-        {{ isLogin ? 'Login' : 'Sign Up' }}
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+      <h2 class="text-3xl font-bold mb-6 text-center">
+        {{ isLogin ? 'Sign Up' : 'Login' }}
       </h2>
 
-      <form @submit.prevent="isLogin ? login() : signup()">
-        <div v-if="!isLogin">
-          <div class="mb-4">
-            <label class="block mb-1 text-sm font-medium dark-toggle-text">Name</label>
-            <input type="text" v-model="name" required class="input-field" />
-          </div>
-          <div class="mb-4">
-            <label class="block mb-1 text-sm font-medium dark-toggle-text">Surname</label>
-            <input type="text" v-model="surname" required class="input-field" />
-          </div>
-          <div class="mb-4">
-            <label class="block mb-1 text-sm font-medium dark-toggle-text">Birthdate</label>
-            <input type="date" v-model="birthdate" required class="input-field" />
-          </div>
-          <div class="mb-4">
-            <label class="block mb-1 text-sm font-medium dark-toggle-text">Gender</label>
-            <select v-model="gender" required class="input-field">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+      <!-- Sign Up Form -->
+      <form @submit.prevent="signUp" v-if="isLogin">
+        <div class="mb-4">
+          <label class="block mb-1 text-sm font-medium">Name</label>
+          <input
+              type="text"
+              v-model="name"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
         </div>
 
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium dark-toggle-text">Email</label>
-          <input type="email" v-model="email" required class="input-field" />
+          <label class="block mb-1 text-sm font-medium">Surname</label>
+          <input
+              type="text"
+              v-model="surname"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-1 text-sm font-medium">Birthdate</label>
+          <input
+              type="date"
+              v-model="birthdate"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-1 text-sm font-medium">Gender</label>
+          <select
+              v-model="gender"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          >
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-1 text-sm font-medium">Email</label>
+          <input
+              type="email"
+              v-model="email"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
         </div>
 
         <div class="mb-6">
-          <label class="block mb-1 text-sm font-medium dark-toggle-text">Password</label>
-          <input type="password" v-model="password" required class="input-field" />
+          <label class="block mb-1 text-sm font-medium">Password</label>
+          <input
+              type="password"
+              v-model="password"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
         </div>
 
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition">
-          {{ isLogin ? 'Login' : 'Sign Up' }}
+        <button
+            type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition-colors duration-200"
+        >
+          Sign Up
         </button>
       </form>
 
-      <p class="mt-6 text-sm text-center dark-toggle-text">
+      <!-- Log In Form -->
+      <form @submit.prevent="logIn" v-else>
+        <div class="mb-4">
+          <label class="block mb-1 text-sm font-medium">Email</label>
+          <input
+              type="email"
+              v-model="email"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
+        </div>
+
+        <div class="mb-6">
+          <label class="block mb-1 text-sm font-medium">Password</label>
+          <input
+              type="password"
+              v-model="password"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+          />
+        </div>
+
+        <button
+            type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition-colors duration-200"
+        >
+          Log In
+        </button>
+      </form>
+
+      <p class="mt-6 text-sm text-center">
         {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
-        <button @click="switchMode" class="ml-1 text-blue-600 hover:underline font-medium">
+        <button
+            @click="switchMode"
+            class="ml-1 text-blue-600 hover:underline font-medium"
+        >
           {{ isLogin ? "Sign Up" : "Login" }}
         </button>
       </p>
@@ -122,37 +159,4 @@ const signup = () => {
 </template>
 
 <style scoped>
-/* Dark Mode Applied to <html> */
-.dark-mode {
-  background-color: #1a202c;
-  color: white;
-}
-
-.dark-mode .dark-page {
-  background-color: #1a202c !important;
-}
-
-.dark-mode .dark-toggle-bg {
-  background-color: #2d3748 !important;
-}
-
-.dark-mode .dark-toggle-text {
-  color: #e2e8f0 !important;
-}
-
-.dark-mode .input-field {
-  background-color: #4a5568 !important;
-  color: white !important;
-  border-color: #718096 !important;
-}
-
-.input-field {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: white;
-  color: black;
-  transition: background-color 0.3s, color 0.3s;
-}
 </style>
