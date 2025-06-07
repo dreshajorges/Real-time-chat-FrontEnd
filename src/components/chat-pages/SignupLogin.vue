@@ -1,85 +1,148 @@
 <script setup lang="ts">
-import {ref, type Ref} from 'vue'
+import {reactive, ref} from 'vue'
+import Navbar from "../layouts/Navbar.vue"
+import {useAuthStore} from "../../stores/auth.ts"
 
-// Track login/signup toggle
-const isLogin: Ref<boolean> = ref(true)
+const authStore = useAuthStore()
 
-// Form fields
-const name = ref<string>('')
-const surname = ref<string>('')
-const birthdate = ref<string>('')
-const gender = ref<string>('MALE')
-const email = ref<string>('')
-const password = ref<string>('')
+const isLogin = ref<boolean>(true)
 
-/**
- * Switch between Sign Up and Login modes
- */
+const signupFormData = reactive({
+  name: '',
+  surname: '',
+  birthdate: '',
+  gender: 'MALE',
+  email: '',
+  password: ''
+})
+
+const loginFormData = reactive({
+  email: '',
+  password: ''
+})
+
 function switchMode(): void {
   isLogin.value = !isLogin.value
 }
 
-/**
- * Handle user sign-up
- */
-function signUp(): void {
-  // TODO: implement sign-up logic
+async function signUp() {
+  try {
+    await authStore.signup(signupFormData)
+
+    alert("Sign up successfully")
+
+    isLogin.value = !isLogin.value
+
+  } catch (e) {
+    console.log(e)
+  }
+
+
 }
 
-/**
- * Handle user log-in
- */
-function logIn(): void {
-  // TODO: implement log-in logic
+async function logIn() {
+  try {
+    await authStore.logIn(loginFormData)
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+const isDarkMode = ref<boolean>(true)
+
+function changeDarkMode(): void {
+  isDarkMode.value = !isDarkMode.value
+  localStorage.setItem('dark-mode', JSON.stringify(isDarkMode.value))
 }
 </script>
 
 <template>
-  <div class="w-full min-h-screen flex items-center justify-center bg-gray-100">
-    <!-- Card -->
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-      <h2 class="text-3xl font-bold mb-6 text-center">
+  <Navbar @change-dark-mode="changeDarkMode"/>
+
+  <div
+      :class="isDarkMode
+      ? 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-gray-900'
+      : 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-gray-100'"
+  >
+    <div
+        :class="isDarkMode
+        ? 'transition-colors duration-200 bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-white'
+        : 'transition-colors duration-200 bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-amber'"
+    >
+      <h2
+          :class="isDarkMode
+          ? 'transition-colors duration-200 text-3xl font-bold mb-6 text-center text-white'
+          : 'transition-colors duration-200 text-3xl font-bold mb-6 text-center'"
+      >
         {{ isLogin ? 'Sign Up' : 'Login' }}
       </h2>
 
       <!-- Sign Up Form -->
       <form @submit.prevent="signUp" v-if="isLogin">
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium">Name</label>
+          <label
+              :class="isDarkMode
+              ? 'block mb-1 text-sm font-medium text-white'
+              : 'block mb-1 text-sm font-medium'"
+          >Name</label
+          >
           <input
               type="text"
-              v-model="name"
+              v-model="signupFormData.name"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium">Surname</label>
+          <label
+              :class="isDarkMode
+              ? 'block mb-1 text-sm font-medium text-white'
+              : 'block mb-1 text-sm font-medium'"
+          >Surname</label
+          >
           <input
               type="text"
-              v-model="surname"
+              v-model="signupFormData.surname"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium">Birthdate</label>
+          <label
+              :class="isDarkMode
+              ? 'block mb-1 text-sm font-medium text-white'
+              : 'block mb-1 text-sm font-medium'"
+          >Birthdate</label
+          >
           <input
               type="date"
-              v-model="birthdate"
+              v-model="signupFormData.birthdate"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium">Gender</label>
+          <label
+              :class="isDarkMode
+              ? 'block mb-1 text-sm font-medium text-white'
+              : 'block mb-1 text-sm font-medium'"
+          >Gender</label
+          >
           <select
-              v-model="gender"
+              v-model="signupFormData.gender"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           >
             <option value="MALE">Male</option>
             <option value="FEMALE">Female</option>
@@ -88,22 +151,36 @@ function logIn(): void {
         </div>
 
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium">Email</label>
+          <label
+              :class="isDarkMode
+              ? 'block mb-1 text-sm font-medium text-white'
+              : 'block mb-1 text-sm font-medium'"
+          >Email</label
+          >
           <input
               type="email"
-              v-model="email"
+              v-model="signupFormData.email"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
         <div class="mb-6">
-          <label class="block mb-1 text-sm font-medium">Password</label>
+          <label
+              :class="isDarkMode
+              ? 'block mb-1 text-sm font-medium text-white'
+              : 'block mb-1 text-sm font-medium'"
+          >Password</label
+          >
           <input
               type="password"
-              v-model="password"
+              v-model="signupFormData.password"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
@@ -118,22 +195,36 @@ function logIn(): void {
       <!-- Log In Form -->
       <form @submit.prevent="logIn" v-else>
         <div class="mb-4">
-          <label class="block mb-1 text-sm font-medium">Email</label>
+          <label
+              :class="isDarkMode
+              ? 'text-white block mb-1 text-sm font-medium'
+              : 'block mb-1 text-sm font-medium'"
+          >Email</label
+          >
           <input
               type="email"
-              v-model="email"
+              v-model="loginFormData.email"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
         <div class="mb-6">
-          <label class="block mb-1 text-sm font-medium">Password</label>
+          <label
+              :class="isDarkMode
+              ? 'text-white block mb-1 text-sm font-medium'
+              : 'block mb-1 text-sm font-medium'"
+          >Password</label
+          >
           <input
               type="password"
-              v-model="password"
+              v-model="loginFormData.password"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+              :class="isDarkMode
+              ? 'text-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+              : 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'"
           />
         </div>
 
@@ -145,13 +236,17 @@ function logIn(): void {
         </button>
       </form>
 
-      <p class="mt-6 text-sm text-center">
+      <p
+          :class="isDarkMode
+          ? 'transition-colors duration-200 mt-6 text-sm text-center text-white'
+          : 'transition-colors duration-200 mt-6 text-sm text-center'"
+      >
         {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
         <button
             @click="switchMode"
-            class="ml-1 text-blue-600 hover:underline font-medium"
+            class="ml-1 text-blue-600 hover:underline font-medium cursor-pointer"
         >
-          {{ isLogin ? "Sign Up" : "Login" }}
+          {{ isLogin ? "Login" : "Sign Up" }}
         </button>
       </p>
     </div>
