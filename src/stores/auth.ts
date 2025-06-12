@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import client from "../helpers/client.ts";
-import {jwtDecode, type JwtPayload} from "jwt-decode"
+import {jwtDecode} from "jwt-decode"
 
 export const useAuthStore = defineStore('auth', ()=>{
 
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore('auth', ()=>{
             localStorage.setItem('token', response.data.token)
             token.value = response.data.token;
 
-            const decodedToken = jwtDecode<JwtPayload>(token.value!);
+            const decodedToken = jwtDecode(token.value!);
 
             const name = decodedToken.sub;
 
@@ -36,6 +36,35 @@ export const useAuthStore = defineStore('auth', ()=>{
         console.log(response)
     }
 
+    function logOut() {
+        if (isLoggedIn.value) {
+            localStorage.removeItem('token');
+            token.value = null;
 
-    return{signup, logIn, token}
+            localStorage.removeItem('name');
+
+        }
+    }
+
+
+    const isLoggedIn = computed(() => {
+        return !!token.value;
+    })
+
+
+    const isAdmin = computed(() => {
+        if (token.value) {
+            try {
+                const decodedToken = jwtDecode(token.value);
+                return decodedToken.role === 'ADMIN';
+            } catch (error) {
+                console.error("Failed to decode token:", error);
+                return false;
+            }
+        }
+        return false;
+    });
+
+
+    return{signup, logIn, token, isLoggedIn, isAdmin, logOut}
 })

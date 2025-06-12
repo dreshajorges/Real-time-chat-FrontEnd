@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import {reactive, ref} from 'vue'
+import {reactive, ref, watch} from 'vue'
 import Navbar from "../layouts/Navbar.vue"
 import {useAuthStore} from "../../stores/auth.ts"
+import { useToast } from "vue-toastification"
+import {useRouter} from "vue-router";
+
 
 const authStore = useAuthStore()
+const toast = useToast()
+const router = useRouter()
+
 
 const isLogin = ref<boolean>(true)
 
@@ -28,32 +34,37 @@ function switchMode(): void {
 async function signUp() {
   try {
     await authStore.signup(signupFormData)
-
-    alert("Sign up successfully")
-
-    isLogin.value = !isLogin.value
-
+    toast.success('Signed up successfully!')
+    switchMode()
   } catch (e) {
-    console.log(e)
+    toast.error('Signup failed. Please try again.')
+    console.error(e)
   }
-
-
 }
 
 async function logIn() {
   try {
     await authStore.logIn(loginFormData)
+    toast.success('Logged in successfully!')
+    await router.push('/chat-room');
   } catch (e) {
-    console.log(e)
+    toast.error('Login failed. Please check your credentials.')
+    console.error(e)
   }
 }
 
-const isDarkMode = ref<boolean>(true)
+const isDarkMode = ref<boolean>(
+    JSON.parse(localStorage.getItem('dark-mode') ?? 'false')
+)
+
+watch(isDarkMode, (val) => {
+  localStorage.setItem('dark-mode', JSON.stringify(val))
+})
 
 function changeDarkMode(): void {
   isDarkMode.value = !isDarkMode.value
-  localStorage.setItem('dark-mode', JSON.stringify(isDarkMode.value))
 }
+
 </script>
 
 <template>
@@ -61,7 +72,7 @@ function changeDarkMode(): void {
 
   <div
       :class="isDarkMode
-      ? 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-gray-900'
+      ? 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-dark-primary-color'
       : 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-gray-100'"
   >
     <div
