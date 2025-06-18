@@ -8,6 +8,8 @@ import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import router from "./routers/router.ts";
 
+;(window as any).global = window
+
 const app = createApp(App)
 
 app.use(createPinia())
