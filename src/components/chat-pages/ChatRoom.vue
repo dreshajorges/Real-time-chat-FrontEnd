@@ -1,57 +1,92 @@
 <template>
   <Navbar />
-  <div class="chat-container">
+  <div class="flex h-screen">
     <!-- FRIENDS SIDEBAR WITH SEARCH -->
-    <aside class="friends-list">
-      <div class="search-add">
+    <aside class="w-1/5 border-r border-gray-300 p-4">
+      <div class="mb-4">
         <input
             v-model="searchQuery"
             @input="onSearch"
             placeholder="Search users…"
             autocomplete="off"
+            class="w-full p-2 mb-2 border border-gray-300 rounded"
         />
-        <ul v-if="searchResults.length" class="search-results">
-          <li v-for="u in searchResults" :key="u.id">
-            {{ u.name }} ({{ u.email }})
-            <button @click="addFriend(u.id)">Add</button>
+        <ul v-if="searchResults.length" class="bg-white border border-gray-300 max-h-48 overflow-y-auto list-none p-0 m-0">
+          <li
+              v-for="u in searchResults"
+              :key="u.id"
+              class="flex justify-between p-2 hover:bg-gray-100"
+          >
+            <span>{{ u.name }} {{ u.surname }} ({{ u.email }})</span>
+            <button
+                @click="addFriend(u.id)"
+                class="ml-2 p-1 bg-green-500 text-white rounded"
+            >
+              Add
+            </button>
           </li>
         </ul>
       </div>
 
-      <h3>Your Friends</h3>
-      <ul>
+      <h3 class="text-lg font-semibold mb-2">Your Friends</h3>
+      <ul class="list-none p-0 m-0">
         <li
             v-for="f in friends"
             :key="f.id"
-            :class="{ selected: f.email === selectedFriend }"
+            :class="[
+            'p-2 cursor-pointer hover:bg-gray-100',
+            f.email === selectedFriend ? 'bg-gray-200' : ''
+          ]"
             @click="selectFriend(f.email)"
         >
-          {{ f.name }} ({{ f.email }})
+          {{ f.name }} {{ f.surname }} ({{ f.email }})
         </li>
       </ul>
     </aside>
 
     <!-- CHAT WINDOW -->
-    <section class="chat-window">
-      <div class="messages">
+    <section class="flex-1 flex flex-col">
+      <!-- Messages container: reversed flex to start at bottom -->
+      <div
+          ref="messageContainer"
+          class="flex-1 p-4 overflow-y-auto flex flex-col justify-end space-y-2"
+      >
         <div
             v-for="msg in messages"
             :key="msg.timestamp + msg.from"
-            :class="['message', msg.from === me ? 'outgoing' : 'incoming']"
+            :class="[
+            'max-w-xs px-4 py-2 rounded-lg break-words',
+            msg.from === me
+              ? 'bg-blue-500 text-white self-end'
+              : 'bg-gray-200 text-gray-900 self-start'
+          ]"
         >
+          <div class="text-sm font-semibold mb-1">{{ msg.from }}</div>
+          <div class="text-base">{{ msg.content }}</div>
         </div>
       </div>
 
-      <form @submit.prevent="send" class="message-form">
-        <input v-model="newMessage" placeholder="Type your message…" autocomplete="off" />
-        <button type="submit" :disabled="!newMessage || !selectedFriend">Send</button>
+      <form @submit.prevent="send" class="flex p-4 border-t border-gray-300">
+        <input
+            v-model="newMessage"
+            placeholder="Type your message…"
+            autocomplete="off"
+            class="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <button
+            type="submit"
+            :disabled="!newMessage || !selectedFriend"
+            class="ml-2 p-2 bg-blue-500 text-white rounded disabled:opacity-50"
+        >
+          Send
+        </button>
       </form>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import axios from 'axios';
 import WebSocketService from '../../helpers/websocket.ts';
 import Navbar from "../layouts/Navbar.vue";
@@ -59,6 +94,7 @@ import Navbar from "../layouts/Navbar.vue";
 interface Friend {
   id: number;
   name: string;
+  surname: string;
   email: string;
 }
 
@@ -67,6 +103,15 @@ interface ChatMessage {
   to?: string;
   content: string;
   timestamp: number;
+}
+
+interface HistoryRecord {
+  id: number;
+  type: 'CHAT' | 'PRIVATE' | 'JOIN';
+  fromUser: string;
+  toUser: string | null;
+  content: string;
+  timestamp: string;
 }
 
 const me = localStorage.getItem('name') || '';
@@ -80,6 +125,7 @@ const friends = ref<Friend[]>([]);
 const selectedFriend = ref<string>('');
 const messages = ref<ChatMessage[]>([]);
 const newMessage = ref('');
+const messageContainer = ref<HTMLElement | null>(null);
 
 function loadFriends() {
   axios
@@ -117,20 +163,71 @@ function addFriend(friendId: number) {
       });
 }
 
-function selectFriend(email: string) {
-  selectedFriend.value = email;
-}
-
 function onPublic(msg: any) {
   messages.value.push(JSON.parse(msg.body));
+  scrollToBottom();
 }
 function onPrivate(msg: any) {
   messages.value.push(JSON.parse(msg.body));
+  scrollToBottom();
 }
 
 function send() {
-  WebSocketService.sendPrivate({ from: me, to: selectedFriend.value, content: newMessage.value.trim() });
+  const content = newMessage.value.trim();
+  if (!content || !selectedFriend.value) return;
+
+  // 1) Immediately append to history
+  const msg: ChatMessage = {
+    from: me,
+    to: selectedFriend.value,
+    content,
+    timestamp: Date.now(),
+  };
+  messages.value.push(msg);
+  scrollToBottom();
+
+  // 2) Send over WebSocket
+  WebSocketService.sendPrivate({
+    from: me,
+    to: selectedFriend.value,
+    content,
+  });
+
+  // 3) Clear input
   newMessage.value = '';
+}
+
+
+async function loadHistory() {
+  if (!selectedFriend.value) return;
+
+  const res = await axios.get<HistoryRecord[]>(
+      `http://localhost:8080/api/chat/history/${encodeURIComponent(selectedFriend.value)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  messages.value = res.data.map(h => ({
+    from: h.fromUser,
+    to: h.toUser ?? undefined,
+    content: h.content,
+    timestamp: new Date(h.timestamp).getTime(),
+  }));
+  await nextTick();
+  scrollToBottom();
+}
+
+function selectFriend(email: string) {
+  selectedFriend.value = email;
+  messages.value = [];
+  loadHistory();
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    if (messageContainer.value) {
+      messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+    }
+  });
 }
 
 onMounted(() => {
@@ -143,89 +240,5 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-.chat-container {
-  display: flex;
-  height: 100vh;
-}
 
-/* FRIENDS SIDEBAR */
-.friends-list {
-  width: 250px;
-  border-right: 1px solid #ccc;
-  padding: 1rem;
-  box-sizing: border-box;
-}
-
-/* SEARCH ADD */
-.search-add {
-  margin-bottom: 1rem;
-}
-.search-add input {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  box-sizing: border-box;
-}
-.search-results {
-  background: #fff;
-  border: 1px solid #ccc;
-  max-height: 200px;
-  overflow-y: auto;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.search-results li {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem;
-}
-
-/* FRIEND ITEMS */
-.friends-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.friends-list li {
-  padding: 0.5rem;
-  cursor: pointer;
-}
-.friends-list li.selected {
-  background: #e0e0e0;
-}
-
-/* CHAT WINDOW */
-.chat-window {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.messages {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-}
-.message {
-  margin-bottom: 0.5rem;
-}
-.message.outgoing {
-  text-align: right;
-}
-
-/* MESSAGE FORM */
-.message-form {
-  display: flex;
-  padding: 1rem;
-  border-top: 1px solid #ccc;
-}
-.message-form input {
-  flex: 1;
-  padding: 0.5rem;
-}
-.message-form button {
-  margin-left: 0.5rem;
-  padding: 0.5rem 1rem;
-}
-</style>
+<!--me i bo api calls me ni store edhe me nreq ngrokin-->

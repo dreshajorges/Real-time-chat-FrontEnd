@@ -16,8 +16,6 @@ app.use(createPinia())
 
 app.use(Toast, {
     position: POSITION.TOP_RIGHT,
-    // timeout: 3000,
-    // closeOnClick: false,
 })
 
 app.use(router)
