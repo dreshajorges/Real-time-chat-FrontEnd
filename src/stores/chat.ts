@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import { ref } from 'vue'
+import client from '../helpers/client'  // your axios instance with Authorization interceptor
 
 export interface Friend {
     id: number
@@ -24,95 +25,110 @@ interface HistoryRecord {
     timestamp: string
 }
 
-export const useChatStore = defineStore('chat', {
-    state: () => ({
-        friends: [] as Friend[],
-        searchResults: [] as Friend[],
-        messages: [] as ChatMessage[],
-        selectedFriend: '' as string,
-        searchQuery: '' as string,
-    }),
-    actions: {
-        get token() {
-            return localStorage.getItem('token') ?? ''
-        },
+export const useChatStore = defineStore('chat', () => {
 
-        async loadFriends() {
-            try {
-                const res = await axios.get<Friend[]>(
-                    'http://localhost:8080/api/chat/users/friends',
-                    { headers: { Authorization: `Bearer ${this.token}` } }
-                )
-                this.friends = res.data
-            } catch {
-                this.friends = []
-            }
-        },
+    const url = "http://localhost:8080/api/chat/"
 
-        async searchUsers() {
-            const q = this.searchQuery.trim()
-            if (!q) {
-                this.searchResults = []
-                return
-            }
-            try {
-                const res = await axios.get<Friend[]>(
-                    'http://localhost:8080/api/chat/users/search',
-                    {
-                        params: { q },
-                        headers: { Authorization: `Bearer ${this.token}` },
-                    }
-                )
-                this.searchResults = res.data
-            } catch {
-                this.searchResults = []
-            }
-        },
+    const searchQuery    = ref<string>('')
+    const searchResults  = ref<Friend[]>([])
+    const friends        = ref<Friend[]>([])
+    const selectedFriend = ref<string>('')
+    const messages       = ref<ChatMessage[]>([])
 
-        async addFriend(friendId: number) {
-            if (!friendId) return
-            try {
-                await axios.post(
-                    `http://localhost:8080/api/chat/users/${friendId}/friends`,
-                    {},
-                    { headers: { Authorization: `Bearer ${this.token}` } }
-                )
-                this.searchResults = []
-                this.searchQuery = ''
-                await this.loadFriends()
-            } catch {
-                // optionally handle error
-            }
-        },
+    /** Load only *my* friends.  We map down to Friend DTO here to drop nested loops. */
+    async function loadFriends(): Promise<void> {
+        try {
+            const res = await client.get<any[]>(`${url}users/friends`)
+            friends.value = res.data.map(u => ({
+                id:      u.id,
+                name:    u.name,
+                surname: u.surname,
+                email:   u.email
+            }))
+        } catch {
+            friends.value = []
+        }
+    }
 
-        async loadHistory() {
-            if (!this.selectedFriend) return
-            try {
-                const res = await axios.get<HistoryRecord[]>(
-                    `http://localhost:8080/api/chat/history/${encodeURIComponent(
-                        this.selectedFriend
-                    )}`,
-                    { headers: { Authorization: `Bearer ${this.token}` } }
-                )
-                this.messages = res.data.map(h => ({
-                    from: h.fromUser,
-                    to: h.toUser ?? undefined,
-                    content: h.content,
-                    timestamp: new Date(h.timestamp).getTime(),
-                }))
-            } catch {
-                this.messages = []
-            }
-        },
+    /** Search users by name/email — again flatten to Friend. */
+    async function searchUsers(): Promise<void> {
+        const q = searchQuery.value.trim()
+        if (!q) {
+            searchResults.value = []
+            return
+        }
+        try {
+            const res = await client.get<any[]>(`${url}users/search`, { params: { q } })
+            searchResults.value = res.data.map(u => ({
+                id:      u.id,
+                name:    u.name,
+                surname: u.surname,
+                email:   u.email
+            }))
+        } catch {
+            searchResults.value = []
+        }
+    }
 
-        selectFriend(email: string) {
-            this.selectedFriend = email
-            this.messages = []
-            this.loadHistory()
-        },
+    /** Hit the add‐friend endpoint & refresh */
+    async function addFriend(friendId: number): Promise<void> {
+        if (!friendId) return
+        try {
+            await client.post(`${url}users/${friendId}/friends`)
+            searchResults.value = []
+            searchQuery.value   = ''
+            await loadFriends()
+        } catch {
+            // handle if you like
+        }
+    }
 
-        appendMessage(msg: ChatMessage) {
-            this.messages.push(msg)
-        },
-    },
+    /** Load chat history with the selected friend */
+    async function loadHistory(): Promise<void> {
+        if (!selectedFriend.value) {
+            messages.value = []
+            return
+        }
+        try {
+            const res = await client.get<HistoryRecord[]>(
+                `${url}history/${encodeURIComponent(selectedFriend.value)}`
+            )
+            messages.value = res.data.map(h => ({
+                from:      h.fromUser,
+                to:        h.toUser   ?? undefined,
+                content:   h.content,
+                timestamp: new Date(h.timestamp).getTime(),
+            }))
+        } catch {
+            messages.value = []
+        }
+    }
+
+    /** Pick a friend & fetch his history */
+    function selectFriend(email: string): void {
+        selectedFriend.value = email
+        messages.value       = []
+        loadHistory()
+    }
+
+    /** Append a message (public or private) */
+    function appendMessage(msg: ChatMessage): void {
+        messages.value.push(msg)
+    }
+
+    return {
+        // state
+        searchQuery,
+        searchResults,
+        friends,
+        selectedFriend,
+        messages,
+        // actions
+        loadFriends,
+        searchUsers,
+        addFriend,
+        loadHistory,
+        selectFriend,
+        appendMessage,
+    }
 })
