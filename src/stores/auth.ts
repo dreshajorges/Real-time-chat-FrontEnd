@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', ()=>{
 
             const name = decodedToken.sub;
 
-            if (name != null) { //me kqyr qita nese nuk bon diqka me login
+            if (name != null) {
                 localStorage.setItem('name', name);
             }
 
@@ -65,6 +65,17 @@ export const useAuthStore = defineStore('auth', ()=>{
         return false;
     });
 
+    const userInfo = computed<Record<string, any> | null>(() => {
+        if (!token.value) return null
+        try {
+            return jwtDecode(token.value)
+        } catch (err) {
+            console.error('Failed to decode JWT:', err)
+            return null
+        }
+    })
 
-    return{signup, logIn, token, isLoggedIn, isAdmin, logOut}
+
+
+    return{signup, logIn, token, isLoggedIn, isAdmin, logOut, userInfo}
 })

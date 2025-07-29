@@ -111,14 +111,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useRequestStore } from '../../stores/request'
 import { useRouter } from 'vue-router'
+import {useToast} from "vue-toastification";
 
 const authStore    = useAuthStore()
 const requestStore = useRequestStore()
 const router       = useRouter()
+const toast = useToast()
 
 // dropdown state
 const isDropdownOpen = ref(false)
@@ -131,6 +133,30 @@ const username = computed(() => localStorage.getItem('name') || '')
 // counts
 const requestCount = computed(() => requestStore.pendingRequests.length)
 const pendingEmpty = computed(() => requestCount.value === 0)
+
+
+function alertFriendRequests(count: number) {
+  if (count === 1) {
+    toast.info('You have a new friend request!')
+  }
+  else if (count > 1) {
+    toast.info('You have new friend requests!')
+  }
+}
+
+// load initial requests and alert on mount
+onMounted(async () => {
+  await requestStore.loadRequests()
+})
+
+// watch for initial and future increases
+watch(requestCount, (newCount, oldCount) => {
+      if (newCount > oldCount) {
+        alertFriendRequests(newCount)
+      }
+    },
+    { immediate: true }
+)
 
 function toggleDropdown() {
   isDropdownOpen.value = !isDropdownOpen.value
@@ -146,7 +172,7 @@ function toggleRequests() {
 
 function handleProfile() {
   isDropdownOpen.value = false
-  // e.g. router.push({ name: 'Profile' })
+  router.push(`/profile`)
 }
 
 async function handleLogout() {

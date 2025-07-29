@@ -117,13 +117,11 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     return {
-        // state
         searchQuery,
         searchResults,
         friends,
         selectedFriend,
         messages,
-        // actions
         loadFriends,
         searchUsers,
         addFriend,
