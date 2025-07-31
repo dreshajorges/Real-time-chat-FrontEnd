@@ -46,7 +46,7 @@ async function logIn() {
   try {
     await authStore.logIn(loginFormData)
     toast.success('Logged in successfully!')
-    await router.push('/chat-room');
+    await router.replace('/chat-room');
   } catch (e) {
     toast.error('Login failed. Please check your credentials.')
     console.error(e)

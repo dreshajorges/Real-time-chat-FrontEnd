@@ -10,26 +10,30 @@ const toast = useToast()
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-        {path: '', name: 'SignupLogin', component: SignupLogin, meta: {requiresAuth: false}},
+        {path: '', name: 'SignupLogin', component: SignupLogin, meta: {guest: true}},
         {path: '/chat-room', name: 'ChatRoom', component: ChatRoom, meta: {requiresAuth: true}},
         {path: '/profile', name: 'Profile', component: Profile, meta: {requiresAuth: true}}
 
     ]
 })
 
-router.beforeEach((to,_from, next) => {
+router.beforeEach((to) => {
     const authStore = useAuthStore();
 
     if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-        toast.error('Unauthorized Access');
+        toast.error('Unauthorized Access. Please login first.');
 
-        next({
+        return{
             name: 'SignupLogin',
             query: {redirect: to.fullPath}
-        });
-    } else {
-        next()
+        };
     }
+
+    if (to.meta.guest && authStore.isLoggedIn) {
+        return {name: 'ChatRoom'}
+    }
+
+    return true
 })
 
 export default router;

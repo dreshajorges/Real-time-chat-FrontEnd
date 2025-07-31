@@ -1,7 +1,7 @@
 <template>
   <div class="w-full flex justify-between items-center bg-blue-600 h-16 px-8">
     <!-- Logo / Title -->
-    <h1 class="text-white font-black text-2xl">Chattify</h1>
+    <h1 @click="titleClick" class="text-white font-black text-2xl cursor-pointer hover:text-gray-200">Chattify</h1>
 
     <div class="flex items-center space-x-4">
       <!-- Dark Mode Toggle -->
@@ -134,6 +134,9 @@ const username = computed(() => localStorage.getItem('name') || '')
 const requestCount = computed(() => requestStore.pendingRequests.length)
 const pendingEmpty = computed(() => requestCount.value === 0)
 
+function titleClick(){
+  router.push('/')
+}
 
 function alertFriendRequests(count: number) {
   if (count === 1) {
