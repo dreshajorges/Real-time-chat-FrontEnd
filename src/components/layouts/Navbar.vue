@@ -1,13 +1,12 @@
+<!-- src/layouts/Navbar.vue -->
 <template>
-  <div class="w-full flex justify-between items-center bg-blue-600 h-16 px-8">
-    <!-- Logo / Title -->
-    <h1 @click="titleClick" class="text-white font-black text-2xl cursor-pointer hover:text-gray-200">Chattify</h1>
-
-    <div class="flex items-center space-x-4">
-      <!-- Dark Mode Toggle -->
+  <div class="w-full flex items-center bg-blue-600 h-16 px-4 sm:px-8">
+    <!-- LEFT: mobile dark-mode (only) + desktop title -->
+    <div class="flex items-center gap-3">
+      <!-- Dark Mode (mobile only) -->
       <button
           @click="emit('change-dark-mode')"
-          class="bg-blue-800 rounded-full p-2 hover:bg-blue-900 cursor-pointer"
+          class="sm:hidden bg-blue-800 rounded-full p-2 hover:bg-blue-900 cursor-pointer"
           aria-label="Toggle dark mode"
       >
         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="#e3e3e3">
@@ -15,7 +14,29 @@
         </svg>
       </button>
 
-      <!-- User Dropdown -->
+      <!-- Title (desktop only) -->
+      <h1
+          @click="titleClick"
+          class="hidden sm:block text-white font-black text-2xl cursor-pointer hover:text-gray-200"
+      >
+        Chattify
+      </h1>
+    </div>
+
+    <!-- RIGHT: desktop dark-mode + user dropdown -->
+    <div class="ml-auto flex items-center space-x-4">
+      <!-- Dark Mode (desktop only) -->
+      <button
+          @click="emit('change-dark-mode')"
+          class="hidden sm:inline-flex bg-blue-800 rounded-full p-2 hover:bg-blue-900 cursor-pointer"
+          aria-label="Toggle dark mode"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="#e3e3e3">
+          <path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Zm0-80q88 0 158-48.5T740-375q-20 5-40 8t-40 3q-123 0-209.5-86.5T364-660q0-20 3-40t8-40q-78 32-126.5 102T200-480q0 116 82 198t198 82Zm-10-270Z"/>
+        </svg>
+      </button>
+
+      <!-- User Dropdown (single ref for all screen sizes) -->
       <div v-if="authStore.isLoggedIn" class="relative" ref="dropdownRef">
         <button
             @click="toggleDropdown"
@@ -39,10 +60,11 @@
           </svg>
         </button>
 
-        <!-- Dropdown Menu -->
+        <!-- Menu -->
         <div
             v-show="isDropdownOpen"
-            class="absolute right-0 z-10 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg"
+            class="absolute right-0 z-20 mt-2 w-40 sm:w-64 bg-white border border-gray-200 rounded-md shadow-lg"
+            @click.stop
         >
           <div class="py-1">
             <!-- Friend Requests Toggle -->
@@ -105,27 +127,27 @@
             </div>
           </div>
         </div>
-      </div>
+      </div><!-- /dropdown -->
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useRequestStore } from '../../stores/request'
 import { useRouter } from 'vue-router'
-import {useToast} from "vue-toastification";
+import { useToast } from 'vue-toastification'
 
 const authStore    = useAuthStore()
 const requestStore = useRequestStore()
 const router       = useRouter()
-const toast = useToast()
+const toast        = useToast()
 
 // dropdown state
 const isDropdownOpen = ref(false)
 const showRequests   = ref(false)
-const dropdownRef    = ref<HTMLElement|null>(null)
+const dropdownRef    = ref<HTMLElement | null>(null)
 
 // reactive username
 const username = computed(() => localStorage.getItem('name') || '')
@@ -134,15 +156,14 @@ const username = computed(() => localStorage.getItem('name') || '')
 const requestCount = computed(() => requestStore.pendingRequests.length)
 const pendingEmpty = computed(() => requestCount.value === 0)
 
-function titleClick(){
+function titleClick() {
   router.push('/')
 }
 
 function alertFriendRequests(count: number) {
   if (count === 1) {
     toast.info('You have a new friend request!')
-  }
-  else if (count > 1) {
+  } else if (count > 1) {
     toast.info('You have new friend requests!')
   }
 }
@@ -150,16 +171,20 @@ function alertFriendRequests(count: number) {
 // load initial requests and alert on mount
 onMounted(async () => {
   await requestStore.loadRequests()
+  // Use 'click' instead of 'mousedown' so item clicks fire before the menu closes
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // watch for initial and future increases
 watch(requestCount, (newCount, oldCount) => {
-      if (newCount > oldCount) {
-        alertFriendRequests(newCount)
-      }
-    },
-    { immediate: true }
-)
+  if (newCount > oldCount) {
+    alertFriendRequests(newCount)
+  }
+}, { immediate: true })
 
 function toggleDropdown() {
   isDropdownOpen.value = !isDropdownOpen.value
@@ -185,16 +210,14 @@ async function handleLogout() {
 
 // close on outside click
 function handleClickOutside(e: MouseEvent) {
-  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
+  const el = dropdownRef.value
+  if (!el) return
+  if (!el.contains(e.target as Node)) {
     isDropdownOpen.value = false
     showRequests.value = false
   }
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
-
-// declare emits
 const emit = defineEmits(['change-dark-mode'])
 </script>
 

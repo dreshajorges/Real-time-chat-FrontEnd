@@ -26,7 +26,7 @@ export const useUserStore = defineStore("user", () => {
         id: string | number,
         user: Partial<User>
     ): Promise<User> {
-        const { data } = await client.put<User>(`${baseUrl}${id}`, user);
+        const { data } = await client.patch<User>(`${baseUrl}${id}`, user);
         return data;
     }
 

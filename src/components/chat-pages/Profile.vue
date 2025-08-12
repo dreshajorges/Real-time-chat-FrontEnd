@@ -1,14 +1,16 @@
 <!-- src/components/ProfilePage.vue -->
 <script setup lang="ts">
+import { onMounted, reactive, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import Navbar from "../layouts/Navbar.vue";
-import {onMounted, reactive, ref, watch} from "vue";
-import {useAuthStore} from "../../stores/auth.ts";
-import {useUserStore, type User} from "../../stores/user.ts";
-import {useToast} from "vue-toastification";
+import { useAuthStore } from "../../stores/auth.ts";
+import { useUserStore, type User } from "../../stores/user.ts";
+import { useToast } from "vue-toastification";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
 const toast = useToast();
+const router = useRouter();
 
 const isDarkMode = ref<boolean>(
     JSON.parse(localStorage.getItem("dark-mode") ?? "false")
@@ -24,13 +26,14 @@ const userData = reactive<User>({
   email: ""
 });
 
+// for updating password only if provided
 const updatePassword = reactive({
   password: ""
 });
 
 onMounted(async () => {
   if (!authStore.userInfo) return;
-  const userId = authStore.userInfo.userId; // e.g. 8
+  const userId = authStore.userInfo.userId;
 
   try {
     const user = await userStore.getUserById(userId);
@@ -42,6 +45,7 @@ onMounted(async () => {
     userData.email = user.email;
   } catch (err) {
     console.error("Failed to load user data:", err);
+    toast.error("Could not load profile. Please try again.");
   }
 });
 
@@ -57,35 +61,51 @@ async function onSubmit() {
   if (!authStore.userInfo) return;
   const userId = authStore.userInfo.userId;
 
-  // build payload (name/surname etc always sent, email/password only if provided)
-  const payload: Partial<User> = {
-    email : userData.email,
-    password : updatePassword.password,
-  };
+  // build payload: always include email; only add password if non-empty
+  const payload: Partial<User> = { email: userData.email };
+  if (updatePassword.password.trim() !== "") {
+    payload.password = updatePassword.password;
+  }
 
   try {
     await userStore.update(userId, payload);
-    toast.success("Profile updated successfully");
+    toast.success("Profile updated. Please log in again to continue.");
+
+    // clear old auth state & token
+    authStore.logOut();    // make sure this clears both userInfo and stored JWT
+    router.push("/");
   } catch (err) {
     console.error("Failed to update profile:", err);
     toast.error("Could not update profile. Please try again.");
   }
 }
+
+  function goBack(){
+  router.push("/chat-room");
+  }
 </script>
 
 <template>
-  <Navbar @change-dark-mode="changeDarkMode"/>
+  <Navbar @change-dark-mode="changeDarkMode" />
 
-  <div :class="['h-[93vh] w-full flex items-center justify-center transition-colors duration-200',{'bg-gray-900':isDarkMode}]">
-    <form @submit.prevent="onSubmit" class="w-1/2">
+  <p @click="goBack()" class="mx-4 my-4 cursor-pointer hover:text-blue-700">← Back</p>
 
+  <div
+      :class="[
+      'h-[93vh] w-full flex items-center justify-center transition-colors duration-200',
+      { 'bg-gray-900': isDarkMode }
+    ]"
+  >
+    <form @submit.prevent="onSubmit" class="w-2/3 md:w-1/2 ">
       <!-- Name (readonly) -->
       <div class="mb-4">
         <label
             :class="isDarkMode
             ? 'block mb-1 text-sm font-medium text-white'
             : 'block mb-1 text-sm font-medium'"
-        >Name</label>
+        >
+          Name
+        </label>
         <input
             type="text"
             v-model="userData.name"
@@ -105,7 +125,9 @@ async function onSubmit() {
             :class="isDarkMode
             ? 'block mb-1 text-sm font-medium text-white'
             : 'block mb-1 text-sm font-medium'"
-        >Surname</label>
+        >
+          Surname
+        </label>
         <input
             type="text"
             v-model="userData.surname"
@@ -125,7 +147,9 @@ async function onSubmit() {
             :class="isDarkMode
             ? 'block mb-1 text-sm font-medium text-white'
             : 'block mb-1 text-sm font-medium'"
-        >Birthdate</label>
+        >
+          Birthdate
+        </label>
         <input
             type="date"
             v-model="userData.birthdate"
@@ -145,7 +169,9 @@ async function onSubmit() {
             :class="isDarkMode
             ? 'block mb-1 text-sm font-medium text-white'
             : 'block mb-1 text-sm font-medium'"
-        >Gender</label>
+        >
+          Gender
+        </label>
         <select
             v-model="userData.gender"
             disabled
@@ -168,7 +194,9 @@ async function onSubmit() {
             :class="isDarkMode
             ? 'block mb-1 text-sm font-medium text-white'
             : 'block mb-1 text-sm font-medium'"
-        >Email</label>
+        >
+          Email
+        </label>
         <input
             type="email"
             v-model="userData.email"
@@ -187,7 +215,9 @@ async function onSubmit() {
             :class="isDarkMode
             ? 'block mb-1 text-sm font-medium text-white'
             : 'block mb-1 text-sm font-medium'"
-        >Password</label>
+        >
+          Password
+        </label>
         <input
             type="password"
             v-model="updatePassword.password"

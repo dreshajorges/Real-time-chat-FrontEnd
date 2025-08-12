@@ -72,8 +72,8 @@ function changeDarkMode(): void {
 
   <div
       :class="isDarkMode
-      ? 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-dark-primary-color'
-      : 'transition-colors duration-200 w-full min-h-screen flex items-center justify-center bg-gray-100'"
+      ? 'transition-colors duration-200 w-full h-[93.2vh] flex items-center justify-center bg-dark-primary-color'
+      : 'transition-colors duration-200 w-full h-[93.2vh] flex items-center justify-center bg-gray-100'"
   >
     <div
         :class="isDarkMode
